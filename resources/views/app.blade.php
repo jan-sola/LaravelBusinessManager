@@ -1,9 +1,10 @@
 <?php
+
+		$isLoggedIn = Auth::check();
+		if($isLoggedIn){
 			$usr = Auth::user();
-			if(is_null($usr)){
-				$usr = array();
-			}
-			$usr["isLoggedIn"] = Auth::check();
+			$isAdmin = $usr->isAdmin;
+		}
 ?>
 
 <!DOCTYPE html>
@@ -16,7 +17,8 @@
 	<!-- link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css" -->
 	<link rel="stylesheet" href="/bootstrap-3.3.5/css/bootstrap.css">
 	<link rel="stylesheet" href="/bootstrap-3.3.5/css/bootstrap-theme.css">
-	<script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+	<script src="/jQuery/jquery-1.11.3.min.js"></script>
+	<script src="/bootstrap-3.3.5/js/bootstrap.min.js"></script>	
 
 	<style>
 	#loginForm, #signupForm{
@@ -48,16 +50,18 @@
 				<a class="navbar-brand" href="/">Business Manager</a>
 			</div>
 			<div id="collapseHeader" class="collapse navbar-collapse">
-				@if($usr['isLoggedIn'])
+				@if($isLoggedIn)
 					<ul class="nav navbar-nav">
 						<li><a href="/businesses/create">Add a business</a></li>
 					</ul>
-					<ul class="nav navbar-nav">
-						<li><a href="/users/create">Add a user</a></li>
-					</ul>
-					<ul class="nav navbar-nav">
-						<li><a href="/manage">Manage businesses</a></li>
-					</ul>		
+					@if($isAdmin)
+						<ul class="nav navbar-nav">
+							<li><a href="/users/create">Add a user</a></li>
+						</ul>
+						<ul class="nav navbar-nav">
+							<li><a href="/manage">Admin Panel</a></li>
+						</ul>		
+					@endif
 					<ul class="nav navbar-nav navbar-right">
 						<li class="dropdown">
 							<a href="#" class="dropdown-toggle" data-toggle="dropdown">
@@ -131,7 +135,5 @@
 	 @yield('content')
 	</div>
 
-<!-- Latest compiled and minified JavaScript -->
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 </body>
 </html>

@@ -2,17 +2,22 @@
 
 namespace App\Http\Controllers;
 
-//use Illuminate\Http\Request;
+use Illuminate\Http\Request;
 use App\Business;
 use App\User;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\CreateBusinessRequest;
+use App\Http\Requests\BusinessRequest;
 use Illuminate\Support\Facades\Auth;
-use Request;
+//use Request;
 
 class BusinessController extends Controller
 {
+
+		public function __construct(){
+			
+			$this->middleware('auth', ['except' => ['index', 'show']]);
+		}
     //Front page business list view
 		public function index(){
 			$businesses = Business::all();
@@ -28,61 +33,86 @@ class BusinessController extends Controller
 		}
 		
 		//Business detail view
-		public function viewBusiness($id){
-			$business = Business::find($id);
+		public function show($id){
+			$business = Business::findOrFail($id);
 			
-			return view('businesses.viewBusiness', compact('business'));
+			$isLoggedIn = Auth::check();
+			
+			if($isLoggedIn){
+				$isFollowing = Auth::user()->isFollowing($id);
+				$isOwner = $business->isOwnedBy(Auth::id());
+				$isAdmin = Auth::user()->isAdmin;
+				//$isOwner = Auth::user()->isOwner($business->id);
+			}
+			else{ 
+				$isFollowing = false;
+				$isOwner = false;
+				$isAdmin = false;
+			}
+			/*
+			if($isLoggedIn){
+				foreach(Auth::user()->owns as $b){
+					if($b->id == $id){
+						//Current logged in user owns the business
+						$isOwner = true;
+						break;
+					}
+				}
+			}
+			*/
+			return view('businesses.viewBusiness', 
+				compact('business', 'isLoggedIn', 'isOwner', 'isFollowing', 'isAdmin'));
 		}
 		
 		//Create business view
-		public function createBusinessView(){
+		public function create(){
 			return view('businesses.createBusiness');
 		}
 		
 		//Edit business info view
-		public function editBusiness($id){
-			$business = Business::find($id);
-			return view('businesses.manageBusiness', compact('business'));
+		public function edit($id){
+			$business = Business::findOrFail($id);
+			return view('businesses.editBusiness', compact('business'));
 		}
 		
-		//Create user view
-		public function createUserView(){
-			return view('businesses.createUser');
-		}
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  Request  $request
+     * @param  int  $id
+     * @return Response
+     */
+    public function update(BusinessRequest $request, $id)
+    {
+				$input = $request->all();
+        $business = Business::findOrFail($id);
+				$count = $business->id;
 
-		//Edit user info view
-		public function editUser($id){
-			$user = User::find($id);
-			return view('businesses.manageUser', compact('user'));
-		}		
+				//Handle file upload
+				if( $request->hasFile('businessPhoto') ){
+					$file = $request->file('businessPhoto');
+					//$filename = str_replace(" ", "_", $input["name"]) . $count . '.' . $file->guessExtension();
+					$filename = $count . "." . $file->guessExtension();
+					if( $file->isValid() ){
+						$file->move('img/', $filename);			
+						$input["imagePath"] = '/img/' . $filename;
+						
+					}
+				}
+				
+				$business->update($input);
+				return redirect('/businesses/' . $id);
+    }
 		
-		//API functions
-		//GET methods
-		public function getBusinesses(){
-			return Business::all();
-		}
-		
-		public function getBusiness($id){
-			return Business::find($id);
-		}
-		
-		public function getUsers(){
-			return User::all();
-		}
-		
-		public function getUser($id){
-			return User::find($id);
-		}
-		
-		//POST methods
-		public function createBusiness(CreateBusinessRequest $request){
+		public function store(BusinessRequest $request){
 			$input = $request->all();
 			$count = Business::count();
 			
 			//Handle file upload
 			if( $request->hasFile('businessPhoto') ){
 				$file = $request->file('businessPhoto');
-				$filename = str_replace(" ", "_", $input["name"]) . $count . '.' . $file->guessExtension();
+				//$filename = str_replace(" ", "_", $input["name"]) . $count . '.' . $file->guessExtension();
+				$filename = $count . "." . $file->guessExtension();
 				if( $file->isValid() ){
 					$file->move('img/', $filename);
 					$input["imagePath"] = '/img/' . $filename;
@@ -94,36 +124,40 @@ class BusinessController extends Controller
 			return redirect('/');
 		}
 		
-		public function createUser(){
-			$input = Request::all();
-			
-			if($input["password"] == $input["confirmPassword"]){
-				$input["password"] = bcrypt($input["password"]);
-				User::create($input);
-				return redirect('/manage');
-			}
-			
-			return redirect('/usercreate?error=invalidcredentials');
-		}
-		
-		public function deleteBusiness($id){
+		public function destroy($id){
 			if (Auth::check()){
-				$business = Business::find($id);
+				$business = Business::findOrFail($id);
 				$business->delete();
 				return redirect('/manage');				
 			}
 			
-			return redirect('/manage?error=deletefailed');
+			return redirect('/manage?error=deleteFailed');
 
 		}
-		
-		public function deleteUser($id){
+	
+		public function follow(Request $request, $id){
+			$input = $request->all();
+			$followStatus = $input['followStatus'];
 			if (Auth::check()){
-				$user = User::find($id);
-				$user->delete();
-				return redirect('/manage');
+				
+				$business = Business::findOrFail($id);
+				if($followStatus == "follow"){
+					$business->addFollower(Auth::id());
+				}
+				else if($followStatus == "unfollow"){
+					$business->followers()->detach(Auth::id());				
+				}
+				return redirect("/businesses/$id");
 			}
-			
-			return redirect('/manage?error=deletefailed');
+			return redirect("/businesses/$id?error=followFailed");
 		}
+	
+		public function getBusinesses(){
+			return Business::all();
+		}
+		
+		public function getBusiness($id){
+			return Business::findOrFail($id);
+		}
+		
 }
