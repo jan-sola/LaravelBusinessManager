@@ -11,11 +11,38 @@
 |
 */
 
+/*
+*	Base user factory
+*/
 $factory->define(App\User::class, function ($faker) {
     return [
         'name' => $faker->name,
         'email' => $faker->email,
-        'password' => str_random(10),
+        'password' => bcrypt('password'),
         'remember_token' => str_random(10),
+				'isAdmin' => false,
     ];
+});
+
+/*
+*	Admin user factory
+*/
+$factory->defineAs(App\User::class, 'admin', function ($faker) use ($factory){
+		$user = $factory->raw(App\User::class);
+		
+		return array_merge($user, ['isAdmin' => true]);
+});
+
+/*
+*	Business factory
+*/
+$factory->define(App\Business::class, function($faker){
+	return [
+		'name' => $faker->company,
+		'description' => $faker->text,
+		'ownerId' => 1,
+		'imagePath' => '/img/default.jpg',
+		'phoneNumber' => $faker->phoneNumber,
+		'website' => 'http://www.example.com',
+	];
 });

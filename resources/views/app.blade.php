@@ -67,6 +67,7 @@
 							<a href="#" class="dropdown-toggle" data-toggle="dropdown">
 							Welcome, {{$usr->name}} <span class="caret"></span></a>
 							<ul class="dropdown-menu">
+								<li><a href="/users/{{$usr->id}}/edit">Edit account</a></li>
 								<li><a href="/auth/logout">Logout</a></li>
 							</ul>
 						</li>

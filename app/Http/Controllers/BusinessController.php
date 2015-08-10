@@ -18,24 +18,43 @@ class BusinessController extends Controller
 			
 			$this->middleware('auth', ['except' => ['index', 'show']]);
 		}
-    //Front page business list view
+
+    /**
+     * Display a listing of the businesses. Front page view
+		 * Guest users will see a list of all businesses.
+		 * Logged in users will see a list of businesses they're following followed by a list of all others
+     * @return Response
+     */
 		public function index(){
-			$businesses = Business::all();
+			$businesses = Business::all();	
+			if(Auth::check()){
+				$user = Auth::user();
+				$followingBusinessIds = $user->following()->lists('id'); //array of business ids of business the user is following
+				//Get all businesses the user is not following
+				$businesses = Business::whereNotIn('id', $followingBusinessIds)->get(); 
+			}
 			return view('businesses.index', compact('businesses'));
 			//return view('businesses.index')->where('businesses', $businesses);
 		}
 		
-		//Business and user manager view
+    /**
+     * Display the businesses and users. Admin manager view
+     * @return Response
+     */
 		public function manageIndex(){
 			$businesses = Business::all();
 			$users = User::all();
 			return view('businesses.manageIndex', compact('businesses', 'users'));
 		}
 		
-		//Business detail view
+    /**
+     * Display the specified business.
+     *
+     * @param  int  $id - business id
+     * @return Response
+     */
 		public function show($id){
-			$business = Business::findOrFail($id);
-			
+			$business = Business::findOrFail($id);			
 			$isLoggedIn = Auth::check();
 			
 			if($isLoggedIn){
@@ -49,37 +68,41 @@ class BusinessController extends Controller
 				$isOwner = false;
 				$isAdmin = false;
 			}
-			/*
-			if($isLoggedIn){
-				foreach(Auth::user()->owns as $b){
-					if($b->id == $id){
-						//Current logged in user owns the business
-						$isOwner = true;
-						break;
-					}
-				}
-			}
-			*/
+
 			return view('businesses.viewBusiness', 
 				compact('business', 'isLoggedIn', 'isOwner', 'isFollowing', 'isAdmin'));
 		}
 		
-		//Create business view
+    /**
+     * Show the form for creating a new business.
+     *
+     * @return Response
+     */		
 		public function create(){
 			return view('businesses.createBusiness');
 		}
 		
-		//Edit business info view
+    /**
+     * Show the form for editing the specified business.
+     *
+     * @param  int  $id - business id
+     * @return Response
+     */
 		public function edit($id){
 			$business = Business::findOrFail($id);
-			return view('businesses.editBusiness', compact('business'));
+			if($business->isOwnedBy(Auth::id()) || Auth::user()->isAdmin){
+				return view('businesses.editBusiness', compact('business'));
+			}
+			
+			return redirect('/'); //Redirect to index if user doesnt have permission
+			
 		}
 		
     /**
-     * Update the specified resource in storage.
+     * Update the specified business in storage.
      *
      * @param  Request  $request
-     * @param  int  $id
+     * @param  int  $id - business id
      * @return Response
      */
     public function update(BusinessRequest $request, $id)
@@ -103,7 +126,13 @@ class BusinessController extends Controller
 				$business->update($input);
 				return redirect('/businesses/' . $id);
     }
-		
+
+    /**
+     * Store a newly created business in storage.
+     *
+     * @param  Request  $request
+     * @return Response
+     */		
 		public function store(BusinessRequest $request){
 			$input = $request->all();
 			$count = Business::count();
@@ -123,7 +152,13 @@ class BusinessController extends Controller
 			Business::create($input);
 			return redirect('/');
 		}
-		
+
+    /**
+     * Remove the specified business from storage.
+     *
+     * @param  int  $id - business id
+     * @return Response
+     */		
 		public function destroy($id){
 			if (Auth::check()){
 				$business = Business::findOrFail($id);
@@ -134,7 +169,14 @@ class BusinessController extends Controller
 			return redirect('/manage?error=deleteFailed');
 
 		}
-	
+
+    /**
+     * Add or remove the logged in user as a follower
+     *
+     * @param  Request  $request
+     * @param  int  $id - business id
+     * @return Response
+     */		
 		public function follow(Request $request, $id){
 			$input = $request->all();
 			$followStatus = $input['followStatus'];
@@ -152,10 +194,18 @@ class BusinessController extends Controller
 			return redirect("/businesses/$id?error=followFailed");
 		}
 	
+		/**
+		* Show JSON listing of all businesses
+		*/
 		public function getBusinesses(){
 			return Business::all();
 		}
-		
+
+    /**
+		 * Show JSON listing of a business
+     *
+     * @param  int  $id - business id
+     */				
 		public function getBusiness($id){
 			return Business::findOrFail($id);
 		}

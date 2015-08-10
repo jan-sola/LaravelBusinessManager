@@ -21,7 +21,7 @@ class CreateBusinessTable extends Migration
 						$table->string('phoneNumber', 30)->nullable();
 						$table->string('website', 255)->nullable();
             $table->timestamps();
-						$table->foreign('ownerId')->references('id')->on('users');
+						$table->foreign('ownerId')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

@@ -25,7 +25,25 @@
 		}
 	</style>
 	
-	<h1>Businesses</h1>
+	@if(Auth::check() && sizeof(Auth::user()->following))
+	<h2>Following</h2>
+	<div class="well">
+		<div class="row">
+			@foreach( Auth::user()->following as $business)
+				<div class="col-xs-4 col-sm-3 col-md-3 col-lg-2">
+					<div class="businessContainer">
+						<a href="/businesses/{{$business->id}}">
+							<div><img src="{{$business->imagePath}}" alt="loading..."></div>
+							<div class="businessName">{{$business->name}}</div>
+						</a>
+					</div>
+				</div>
+			@endforeach
+		</div>
+	</div>
+	@endif
+	
+	<h2>Businesses</h2>		
 	<div class="well">
 		<div class="row">
 			@foreach( $businesses as $business)
